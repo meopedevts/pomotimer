@@ -3,8 +3,8 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useCallback, useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
-import CircularProgress from './circular-progress'
+import { cn, playAlarm } from '@/lib/utils'
+import CircularProgress from '@/components/circular-progress'
 import { AiOutlineReload } from 'react-icons/ai'
 
 type optionsType = {
@@ -27,7 +27,7 @@ const options: optionsType[] = [
   {
     label: 'Short Break',
     id: 2,
-    timerVal: 5,
+    timerVal: 0.5,
   },
   {
     label: 'Long Break',
@@ -45,12 +45,13 @@ const Pomodoro = () => {
   const [timeLeft, setTimeLeft] = useState(timer * 60)
   const [progress, setProgress] = useState(100)
 
-  const handlerStartTimer = () => {
+  const handleStartTimer = () => {
     setActiveTimer(!activeTimer)
   }
 
   const handleSetActiveButton = useCallback(
     ({ id, timerVal }: buttonCallbackType) => {
+      playAlarm('stop')
       setActiveButton(id)
       setTimer(timerVal)
       setActiveTimer(false)
@@ -69,19 +70,13 @@ const Pomodoro = () => {
 
   useEffect(() => {
     let timerId: any
-
-    console.log(activeTimer)
-
-    // if (activeTimer && timeLeft === 0) {
-    //   setTimer(timer)
-    //   setTimeLeft(timer * 60)
-    //   setProgress(100)
-    // }
+    let alarmId: any
 
     if (activeTimer && timeLeft > 0 && !reloadTimer) {
       timerId = setInterval(() => {
-        setTimeLeft(timeLeft - 1)
-        setProgress((timeLeft / (timer * 60)) * 100)
+        const newTimeLeft = timeLeft - 1
+        setTimeLeft(newTimeLeft)
+        setProgress((newTimeLeft / (timer * 60)) * 100)
       }, 1000)
     } else {
       clearInterval(timerId)
@@ -91,9 +86,18 @@ const Pomodoro = () => {
       setProgress(0)
       setActiveTimer(false)
       setReloadTimer(true)
+      alarmId = setInterval(() => {
+        playAlarm('play')
+      }, 30000)
+      playAlarm('play')
+    } else {
+      clearInterval(alarmId)
     }
 
-    return () => clearInterval(timerId)
+    return () => {
+      clearInterval(timerId)
+      clearInterval(alarmId)
+    }
   }, [activeTimer, timeLeft, timer, reloadTimer])
 
   useEffect(() => {
@@ -138,7 +142,7 @@ const Pomodoro = () => {
         <CardFooter className="flex items-center justify-center">
           {!reloadTimer ? (
             <Button
-              onClick={handlerStartTimer}
+              onClick={handleStartTimer}
               className="bg-zinc-100 hover:bg-zinc-100/80 transition-colors text-zinc-900 font-semibold text-lg w-48 py-6"
             >
               {activeTimer ? 'PAUSE' : 'START'}
